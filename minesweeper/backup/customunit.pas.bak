@@ -1,0 +1,372 @@
+unit CustomUnit;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, crt, Dos;
+
+const
+  CMin_X = 1;
+  CMax_X = 8;
+  CMin_Y = 1;
+  CMax_Y = 8;
+
+type
+  TGroesse_X = CMin_X..CMax_X;
+  TGroesse_Y = CMin_Y..CMax_Y;
+  TFelddefinitionen = (fdFlagge, fdBombe, fdAufgedeckt, fdVerborgen);
+  TSpielfeld = array [TGroesse_X, TGroesse_Y] of TFelddefinitionen;
+
+  Score =  RECORD
+    Name: String[50]; // Name des Spielers in der Highscore
+    Time: Double; // Spieldauer in sec
+  END;
+
+var
+  Spielfeld : TSpielfeld;
+
+implementation
+
+function neighbor_bombs(x:integer;y:integer) : Integer;
+// Gibt die Anzahl an benachbarten Bomben des Feldes (x,y) zurück
+// return Integer = Anzahl der Bomben
+
+begin
+  neighbor_bombs := 0;
+
+  if (x > CMin_X) and (y > CMin_Y) then
+  begin
+    if Spielfeld[x-1,y-1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (y > CMin_Y) then
+  begin
+    if Spielfeld[x,y-1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (x < CMax_X) and (y > CMin_Y) then
+  begin
+    if Spielfeld[x+1,y-1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (x < CMax_X) then
+  begin
+    if Spielfeld[x+1,y] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (x < CMax_X) and (y < CMax_Y) then
+  begin
+    if Spielfeld[x+1,y+1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (y < CMax_Y) then
+  begin
+    if Spielfeld[x,y+1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (x > CMin_X) and (y < CMax_Y) then
+  begin
+    if Spielfeld[x-1,y+1] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+  if (x > CMin_X) then
+  begin
+    if Spielfeld[x-1,y] = fdBombe then neighbor_bombs := neighbor_bombs+1;
+  end;
+end;
+
+function timer() : Double;
+// Ermitteln des jetzigen Zeitpunktes
+// return Double = Gibt den Zeitpunkt als Double zurück
+
+var
+  hour,min,sec,ms:word;
+begin
+  hour := 0;
+  min := 0;
+  sec := 0;
+  ms := 0;
+
+  gettime(hour,min,sec,ms);
+  timer := ((hour*3600.0+min*60.0+sec)*100.0+1.0*ms)/100;
+end;
+
+procedure generate_spielfeld(bomb_count:integer);
+
+// Erzeugen eines zufälligen Spielfeldes
+// bomb_count = Gibt an wie viele Bomben sich im Spielfeld befinden sollen
+
+var
+  x,y,i : integer;
+begin
+  for x:=CMin_X to CMax_x do
+  begin
+    for y :=CMin_Y to CMax_Y do
+    begin
+      Spielfeld[x,y] := fdVerborgen;
+    end;
+  end;
+
+  for i:=1 to bomb_count do
+  begin
+    repeat
+      x := random(CMax_X)+CMin_x;
+      y := random(CMax_Y)+CMin_y;
+    until Spielfeld[x,y] <> fdBombe;
+    Spielfeld[x,y] := fdBombe;
+  end;
+end;
+
+procedure check_field(x:integer;y:integer);
+// Prüft den Inhalt eines Feldes. Wenn ein Feld nicht sichbar + keine Bombe ist,
+// wird rekursiv die Nachbarschaft abgefragt und aufgedeckt
+var
+  foundbomb : integer;
+begin
+  if Spielfeld[x,y] = fdVerborgen then
+  begin
+    foundbomb := neighbor_bombs(x,y);
+    Spielfeld[x,y] := fdAufgedeckt;
+
+    if foundbomb = 0 then
+    begin
+      {Rekursiver Check der umliegenden Felder}
+
+      if (y > CMin_Y) then check_field(x,y-1);
+      if (y < CMax_Y) then check_field(x,y+1);
+      if (x < CMax_X) then check_field(x+1,y);
+      if (x > CMin_X) then check_field(x-1,y);
+      if (x < CMax_X) and (y < CMax_Y) then check_field(x+1,y+1);
+      if (x < CMax_X) and (y > CMin_Y) then check_field(x+1,y-1);
+      if (x > CMin_X) and (y < CMax_Y) then check_field(x-1,y+1);
+      if (x > CMin_X) and (y > CMin_Y) then check_field(x-1,y-1);
+
+    end;
+  end;
+end;
+
+procedure gameover(win:boolean; var gamescore:array of Score; time:double);
+// Anzeige einer Spielvorbeiseite +
+// Abfrage des Names für die Highscore
+
+var
+  name : String[50];
+begin
+  clrscr;
+  writeln('Minesweeper by Gerrit Paepcke');
+  writeln;
+  if win = true then
+  begin
+
+    writeln('Gewonnen! Deine Zeit: '+FloatToStrF(time,ffFixed,10,2)+'s');
+    if (round(gamescore[0].Time*100) > round(time*100)) then
+    begin
+      writeln;
+      writeln('Du hast die Highscore geschlagen und bist nun auf Platz 1!');
+      write('Gebe daher nun deinen Namen ein: ');
+      readln(name);
+
+      gamescore[2] := gamescore[1];
+      gamescore[1] := gamescore[0];
+      gamescore[0].Name := name;
+      gamescore[0].Time:= time;
+    end
+    else if (round(gamescore[1].Time*100) > round(time*100)) then
+    begin
+      writeln;
+      writeln('Du hast die Highscore geschlagen und bist nun auf Platz 2!');
+      write('Gebe daher nun deinen Namen ein: ');
+      readln(name);
+
+      gamescore[2] := gamescore[1];
+      gamescore[1].Name := name;
+      gamescore[1].Time:= time;
+    end
+    else if (round(gamescore[2].Time*100) > round(time*100)) then
+    begin
+      writeln;
+      writeln('Du hast die Highscore geschlagen und bist nun auf Platz 3!');
+      write('Gebe daher nun deinen Namen ein: ');
+      readln(name);
+
+      gamescore[2].Name := name;
+      gamescore[2].Time:= time;
+    end;
+
+    writeln('Bitte druecke Enter, um zum Hauptmenu zurueckzukehren');
+    readln();
+  end
+  else
+  begin
+    writeln('Verloren! Deine Zeit: '+FloatToStrF(time,ffFixed,10,2)+'s');
+    writeln;
+    writeln('Bitte druecke Enter, um zum Hauptmenu zurueckzukehren');
+    readln();
+  end;
+end;
+
+procedure display_header();
+begin
+  clrscr;
+  TextColor(White);
+  TextBackground(Black);
+  writeln('Minesweeper by Gerrit Paepcke');
+  writeln;
+end;
+
+procedure display_game(curser_x:integer; curser_y:integer; bomb_count:integer; time:double);
+// Anzeige des Game Screens
+
+var
+  x,y,nearbombs : integer;
+begin
+  clrscr;
+  writeln('Minesweeper by Gerrit Paepcke');
+  writeln;
+  writeln('Game');
+  writeln;
+  writeln;
+  writeln('Bombem auf dem Spielfeld: '+IntToStr(bomb_count));
+  writeln('Spieldauer: '+FloatToStrF(time,ffFixed,10,2)+'s');
+  for x:=CMin_X to CMax_x do
+  begin
+    for y :=CMin_Y to CMax_Y do
+    begin
+      gotoxy(x+5,y+8);
+      if (x = curser_x) and (y = curser_y) then
+      begin
+        TextColor(Black);
+        TextBackground(White);
+      end;
+
+      case Spielfeld[x,y] of
+         fdFlagge: write('F');
+         fdBombe: write('');
+         fdAufgedeckt:
+           begin
+             nearbombs := neighbor_bombs(x,y);
+             if (nearbombs = 0) then
+             begin
+               write(' ');
+             end
+             else
+             begin
+               write(nearbombs);
+             end;
+           end;
+         fdVerborgen: write('');
+      end;
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln;
+    writeln;
+    writeln;
+    writeln;
+    writeln('Auswahl: Arrow Keys, Flagge setzen: Space');
+    writeln('Aufdecken: Enter, Zum Hauptmenu: Back / b');
+  end;
+  gotoxy(curser_x+5,curser_y+8); {+5 und +8 dienen der besseren Formatierung der Ausgabe}
+end;
+
+procedure display_index(selected_index:integer);
+// Anzeige des Hauptmenüs
+
+begin
+  display_header();
+  writeln('Hauptmenu');
+  writeln;
+  if selected_index = 1 then
+  begin
+    TextColor(Black);
+    TextBackground(White);
+  end
+  else
+  begin
+    TextColor(White);
+    TextBackground(Black);
+  end;
+  writeln('Neues Spiel');
+  if selected_index = 2 then
+  begin
+    TextColor(Black);
+    TextBackground(White);
+  end
+  else
+  begin
+    TextColor(White);
+    TextBackground(Black);
+  end;
+  writeln('Highscore anzeigen');
+  if selected_index = 3 then
+  begin
+    TextColor(Black);
+    TextBackground(White);
+  end
+  else
+  begin
+    TextColor(White);
+    TextBackground(Black);
+  end;
+  writeln('Einstellungen');
+  if selected_index = 4 then
+  begin
+    TextColor(Black);
+    TextBackground(White);
+  end
+  else
+  begin
+    TextColor(White);
+    TextBackground(Black);
+  end;
+  writeln('Programm schliessen');
+  TextColor(White);
+  TextBackground(Black);
+  writeln;
+  writeln;
+  writeln('Steuerung: Up/Down, Auswahl: Enter');
+end;
+
+procedure display_settings(selected_index:integer; bomb_percentage:integer);
+// Anzeige der Einstellungen
+
+begin
+  display_header();
+  writeln('Einstellungen');
+  writeln;
+  write('Bomben pro Spielfeld:   ');
+  if selected_index = 1 then
+  begin
+    TextColor(Black);
+    TextBackground(White);
+  end
+  else
+  begin
+    TextColor(White);
+    TextBackground(Black);
+  end;
+  writeln(IntToStr(bomb_percentage)+'%');
+  TextColor(White);
+  TextBackground(Black);
+  writeln;
+  writeln;
+  writeln('Steuerung: Up/Down, Wert wechseln: Left/Right, Zum Hauptmenu: Back / b');
+end;
+
+procedure display_highscore(gamescore:array of Score);
+// Anzeige der Highscore
+
+var
+  i : integer;
+begin
+  display_header();
+  writeln('Highscore');
+  writeln;
+  for i:=0 to 2 do
+  begin
+    writeln(IntToStr(i+1)+'. Platz: '+gamescore[i].Name+' Zeit: '+FloatToStrF(gamescore[i].Time,ffFixed,10,2)+'s');
+  end;
+  writeln;
+  writeln;
+  writeln('Zum Hauptmenu: Back / b');
+end;
+
+
+
+end.
+

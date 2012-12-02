@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Compiler Value="C:\lazarus\fpc\2.6.0\bin\x86_64-win64\fpc.exe" Date="1095333268"/>
+  <Params Value=" -MObjFPC -Scghi -O1 -g -gl -vewnhi -l &quot;-FiC:\xampp\htdocs\FH Wedel\befreiungsaufgabe\lib\x86_64-win64&quot; &quot;-FuC:\xampp\htdocs\FH Wedel\befreiungsaufgabe\&quot; &quot;-FUC:\xampp\htdocs\FH Wedel\befreiungsaufgabe\lib\x86_64-win64\&quot; befreiungsaufgabe.pas"/>
+</CONFIG>

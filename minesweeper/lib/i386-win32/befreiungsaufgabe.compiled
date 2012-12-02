@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Compiler Value="C:\lazarus\fpc\2.6.0\bin\i386-win32\fpc.exe" Date="1095326452"/>
+  <Params Value=" -MObjFPC -Scghi -O1 -g -gl -vewnhi -l &quot;-FiC:\Users\Henning\Dropbox\FH Wedel\Gerrit Paepcke\Material\Programmstrukturen 1\Programme\befreiungsaufgabe\lib\i386-win32&quot; &quot;-FuC:\Users\Henning\Dropbox\FH Wedel\Gerrit Paepcke\Material\Programmstrukturen 1\Programme\befreiungsaufgabe\&quot; &quot;-FUC:\Users\Henning\Dropbox\FH Wedel\Gerrit Paepcke\Material\Programmstrukturen 1\Programme\befreiungsaufgabe\lib\i386-win32\&quot; befreiungsaufgabe.pas"/>
+  <Complete Value="False"/>
+</CONFIG>

@@ -1,0 +1,271 @@
+{
+ Programmname: Befreiungsaufgabe
+ Befreiungsaufgabe PS1 WS 2012
+
+ Minesweeper in Pascal ohne GUI, nur Textausgabe.
+
+ Author: Gerrit Paepcke
+ Erstelldatum: 9.11.2012
+ Bisherige Änderungen: keine
+}
+
+unit Udisplay;
+
+interface
+  type
+    Score =  RECORD
+      Name: String[50]; // Name des Spielers in der Highscore
+      Time: Double; // Spieldauer in sec
+    END;
+
+  procedure showStandartHeader();
+  procedure showGameScreen(curser_x, curser_y:Byte; bomb_count,flagged_fields:Byte; time:Double; showBombs:Boolean = false);
+  procedure showIndexScreen(selected_index:Byte);
+  procedure showSettingsScreen(selected_index, bomb_percentage:Byte);
+  procedure showHighscoreScreen(gamescore:array of Score);
+
+implementation
+  uses
+    SysUtils, Dos, crt, Ulogic;
+
+  const
+    game_offset_x = 2; // Gameoffset auf der X Achse
+    game_offset_y = 4; // Gameoffset auf der Y Achse
+  procedure showStandartHeader();
+  // Gibt einen Standartoutput aus
+  begin
+    clrscr;
+    TextColor(White);
+    TextBackground(Black);
+    writeln('Minesweeper by Gerrit Paepcke');
+    writeln;
+  end;
+
+  procedure showGameScreen(curser_x, curser_y:Byte; bomb_count,flagged_fields:Byte; time:Double; showBombs:Boolean = false);
+  // Anzeige des Game Screens
+  // param curser_x : Byte = Aktuelle X Position des markierten Feldes
+  // param curser_y : Byte = Aktuelle Y Position des markierten Feldes
+  // param bomb_count : Byte = Anzahl aller Bomben im Spielfeld
+  // param flagged_fields : Byte = Anzahl aller markierter Felder
+  // param time : Double = Derzeitige Spielzeit in Sec
+
+  var
+    x,y,nearbombs : integer;
+  begin
+    showStandartHeader();
+    writeln('Spielfeld: '+IntToStr((Ulogic.CMax_X-Ulogic.CMin_X)+1)+'x'+IntToStr((Ulogic.CMax_Y-Ulogic.CMin_Y)+1));
+    writeln;
+    gotoxy(Ulogic.CMax_X+game_offset_x+3,game_offset_y+2);
+    writeln('Bombem auf dem Spielfeld: '+IntToStr(bomb_count));
+
+    gotoxy(Ulogic.CMax_X+game_offset_x+3,game_offset_y+3);
+    writeln('Markierte Felder (Flaggen F): '+IntToStr(flagged_fields));
+
+    gotoxy(Ulogic.CMax_X+game_offset_x+3,game_offset_y+4);
+    writeln('Spieldauer: '+FloatToStrF(time,ffFixed,10,2)+'s');
+
+    gotoxy(Ulogic.CMax_X+game_offset_x+3,game_offset_y+6);
+    writeln('Auswahl: Arrow Keys, Flagge setzen: Space');
+
+    gotoxy(Ulogic.CMax_X+game_offset_x+3,game_offset_y+7);
+    writeln('Aufdecken: Enter, Zum Hauptmenu: Back / b');
+
+    for x:=Ulogic.CMin_X to Ulogic.CMax_X do
+    begin
+      for y :=Ulogic.CMin_Y to Ulogic.CMax_Y do
+      begin
+        gotoxy(x+game_offset_x,y+game_offset_y);
+        if (x = curser_x) and (y = curser_y) then
+        begin
+          TextColor(Black);
+          TextBackground(White);
+        end;
+
+        case Ulogic.Spielfeld[x,y] of
+           fdFlagge_mBombe:
+             begin
+               if (showBombs = true) then
+               begin
+                 TextColor(Yellow);
+                 write('F');
+               end
+               else
+               begin
+                 TextColor(Green);
+                 write('F');
+               end;
+             end;
+           fdFlagge_oBombe:
+             begin
+               TextColor(Green);
+               write('F');
+             end;
+           fdBombe:
+             begin
+               if (showBombs = true) then
+               begin
+                 TextColor(Yellow);
+                 write('X');
+               end
+               else
+               begin
+                 TextColor(White);
+                 write('#');
+               end;
+             end;
+           fdAufgedeckt:
+             begin
+               nearbombs := Ulogic.countNearBombs(x,y);
+               if (nearbombs = 0) then
+               begin
+                 TextColor(White);
+                 write(' ');
+               end
+               else if (nearbombs = 1) then
+               begin
+                 TextColor(9);
+                 write(nearbombs);
+               end
+               else if (nearbombs = 2) then
+               begin
+                 TextColor(10);
+                 write(nearbombs);
+               end
+               else if (nearbombs = 3) then
+               begin
+                 TextColor(12);
+                 write(nearbombs);
+               end
+               else if (nearbombs = 4) then
+               begin
+                 TextColor(13);
+                 write(nearbombs);
+               end
+               else
+               begin
+                 TextColor(14);
+                 write(nearbombs);
+               end;
+             end;
+           fdVerborgen:
+             begin
+               TextColor(White);
+               write('#');
+             end;
+        end;
+        TextColor(White);
+        TextBackground(Black);
+      end;
+    end;
+    gotoxy(curser_x+game_offset_x,curser_y+game_offset_y);
+  end;
+
+  procedure showIndexScreen(selected_index:Byte);
+  // Anzeige des Hauptmenüs
+  // param selected_index : Byte = Derzeit ausgewählter Menüpunkt
+
+  begin
+    showStandartHeader();
+    writeln('Hauptmenu');
+    writeln;
+
+    if selected_index = 1 then
+    begin
+      TextColor(Black);
+      TextBackground(White);
+    end
+    else
+    begin
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln('Neues Spiel');
+    if selected_index = 2 then
+    begin
+      TextColor(Black);
+      TextBackground(White);
+    end
+    else
+    begin
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln('Highscore anzeigen');
+    if selected_index = 3 then
+    begin
+      TextColor(Black);
+      TextBackground(White);
+    end
+    else
+    begin
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln('Einstellungen');
+    if selected_index = 4 then
+    begin
+      TextColor(Black);
+      TextBackground(White);
+    end
+    else
+    begin
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln('Programm schliessen');
+    TextColor(White);
+    TextBackground(Black);
+    writeln;
+    writeln;
+    writeln('Steuerung: Up/Down, Auswahl: Enter');
+  end;
+
+  procedure showSettingsScreen(selected_index,bomb_percentage:Byte);
+  // Anzeige der Einstellungen
+  // param selected_index : Byte = Derzeit ausgewählte Einstellung
+  // bomb_percentage : Byte = Wahrscheinlichkeit von Bomben im Spielfeld
+
+  begin
+    showStandartHeader();
+    writeln('Einstellungen');
+    writeln;
+    write('Bomben pro Spiel:   ');
+    if selected_index = 1 then
+    begin
+      TextColor(Black);
+      TextBackground(White);
+    end
+    else
+    begin
+      TextColor(White);
+      TextBackground(Black);
+    end;
+    writeln(IntToStr(bomb_percentage)+'%');
+    TextColor(White);
+    TextBackground(Black);
+    writeln;
+    writeln;
+    writeln('Steuerung: Up/Down, Wert wechseln: Left/Right, Zum Hauptmenu: Back / b');
+  end;
+
+  procedure showHighscoreScreen(gamescore:array of Score);
+  // Anzeige der Highscore
+  // param gamescore : Array of Score = Derzeitige Highscore
+
+  var
+    i : byte;
+  begin
+    showStandartHeader();
+    writeln('Highscore');
+    writeln;
+    for i:=0 to 2 do
+    begin
+      writeln(IntToStr(i+1)+'. Platz: '+gamescore[i].Name+' Zeit: '+FloatToStrF(gamescore[i].Time,ffFixed,10,2)+'s');  // Formatierung des Double Wertes auf max. 2 Stellen nach dem Komma
+    end;
+    writeln;
+    writeln;
+    writeln('Zum Hauptmenu: Back / b');
+  end;
+
+end.
+
